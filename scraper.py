@@ -1,39 +1,72 @@
-import asyncio
-from playwright.async_api import async_playwright
+import requests
+import re
 import json
 
-URL = "https://www.spinny.com/buy-used-cars/jaipur/hyundai/elite-i20/sportz-plus-12-ajmer-road-2019/29483061/?referrer=/used-cars-in-jaipur/s/"
+def get_car_id(listing_url):
+    match = re.search(r'/(\d+)/\??', listing_url)
+    return match.group(1) if match else None
 
-async def scrape():
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
-        context = await browser.new_context()
+def fetch_report(listing_url):
+    car_id = get_car_id(listing_url)
+    if not car_id:
+        return None
 
-        # load saved cookies
-        with open("spinny_cookies.json", "r") as f:
-            cookies = json.load(f)
-        await context.add_cookies(cookies)
-        print("Cookies loaded")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+    base = f"https://api.spinny.com/v3/api/pdp/get/inspection-data/?format=json&lead_id={car_id}"
 
-        page = await context.new_page()
+    page2 = requests.get(base + "&page=2", headers=headers).json()
+    page3 = requests.get(base + "&page=3", headers=headers).json()
 
-        print("Opening listing...")
-        await page.goto(URL, wait_until="domcontentloaded")
-        await page.wait_for_timeout(3000)
+    # --- from page 2: category-level summary ---
+    categories_summary = {}
+    for cat in page2["data"]["category_list"]:
+        cat_name = cat["name"]
+        categories_summary[cat_name] = {
+            "rating": cat["rating"],
+            "rating_verdict": cat["rating_verdict"],
+            "brand_new_parts": [],
+            "subcategories": {}
+        }
+        # brand new parts
+        for bucket in cat.get("brand_new_part_list", []):
+            for n2 in bucket.get("n2_list", []):
+                categories_summary[cat_name]["brand_new_parts"].extend(n2["part_list"])
+        # subcategory statements + tyre life
+        for item in cat.get("n1_items", []):
+            categories_summary[cat_name]["subcategories"][item["title"]] = {
+                "statement": item["statement"],
+                "flawless": item["flawless"],
+                "tyre_life": item["meta_data"].get("life_remaining", [])
+            }
 
-        # click "View full report"
-        try:
-            view_report = page.get_by_text("View full report")
-            await view_report.click()
-            print("Clicked 'View full report'")
-            await page.wait_for_timeout(3000)
-        except Exception as e:
-            print(f"Couldn't click 'View full report': {e}")
+    # --- from page 3: part-level faults ---
+    faults_by_subcategory = {}
+    for subcat_key, subcat_data in page3["data"].items():
+        if not isinstance(subcat_data, dict):
+            continue
+        parts = []
+        for condition in ["imperfection", "flawless"]:
+            if condition not in subcat_data:
+                continue
+            for part in subcat_data[condition].get("part_list", []):
+                parts.append({
+                    "name": part["name"],
+                    "soc": part.get("soc", ""),
+                    "is_critical": part.get("is_critical", False),
+                    "condition": condition
+                })
+        if parts:
+            faults_by_subcategory[subcat_key] = parts
 
-        text = await page.inner_text("body")
-        print("\n--- RAW PAGE TEXT ---\n")
-        print(text[:10000])
+    return {
+        "car_id": car_id,
+        "categories": categories_summary,
+        "parts": faults_by_subcategory
+    }
 
-        await browser.close()
-
-asyncio.run(scrape())
+if __name__ == "__main__":
+    url = "https://www.spinny.com/buy-used-cars/jaipur/hyundai/elite-i20/sportz-plus-12-ajmer-road-2019/29483061/?referrer=/used-cars-in-jaipur/s/"
+    result = fetch_report(url)
+    print(json.dumps(result, indent=2))
