@@ -16,10 +16,24 @@ def fetch_report(listing_url):
     }
     base = f"https://api.spinny.com/v3/api/pdp/get/inspection-data/?format=json&lead_id={car_id}"
 
+    # car info
+    product_data = requests.get(
+        f"https://www.spinny.com/api/product-detail/fetch-page-data/{car_id}/",
+        headers=headers
+    ).json()
+    product = product_data["productDetail"]
+    car_info = {
+        "title": f"{product['make_year']} {product['make']} {product['model']} {product['variant']['display_name']}",
+        "km": product["productMileage"],
+        "fuel": product["fuel_type"],
+        "city": product["city"],
+        "price": product["productPrice"],
+    }
+
     page2 = requests.get(base + "&page=2", headers=headers).json()
     page3 = requests.get(base + "&page=3", headers=headers).json()
 
-    # --- from page 2: category-level summary ---
+    # from page 2: category-level summary
     categories_summary = {}
     for cat in page2["data"]["category_list"]:
         cat_name = cat["name"]
@@ -29,11 +43,9 @@ def fetch_report(listing_url):
             "brand_new_parts": [],
             "subcategories": {}
         }
-        # brand new parts
         for bucket in cat.get("brand_new_part_list", []):
             for n2 in bucket.get("n2_list", []):
                 categories_summary[cat_name]["brand_new_parts"].extend(n2["part_list"])
-        # subcategory statements + tyre life
         for item in cat.get("n1_items", []):
             categories_summary[cat_name]["subcategories"][item["title"]] = {
                 "statement": item["statement"],
@@ -41,7 +53,7 @@ def fetch_report(listing_url):
                 "tyre_life": item["meta_data"].get("life_remaining", [])
             }
 
-    # --- from page 3: part-level faults ---
+    # from page 3: part-level faults
     faults_by_subcategory = {}
     for subcat_key, subcat_data in page3["data"].items():
         if not isinstance(subcat_data, dict):
@@ -62,6 +74,7 @@ def fetch_report(listing_url):
 
     return {
         "car_id": car_id,
+        "car": car_info,
         "categories": categories_summary,
         "parts": faults_by_subcategory
     }
