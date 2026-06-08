@@ -5,6 +5,7 @@ from spinny_scraper import fetch_report as fetch_spinny
 from cars24_scraper import fetch_report as fetch_cars24
 from spinny_parser import parse_report as parse_spinny
 from cars24_parser import parse_report as parse_cars24
+from ml import enrich_faults
 
 app = FastAPI()
 
@@ -45,6 +46,15 @@ def analyse(req: AnalyseRequest):
 
     else:
         raise HTTPException(status_code=400, detail="Unsupported platform. Supported: spinny, cars24")
+
+    result["critical_imperfections"] = enrich_faults(result["critical_imperfections"], is_critical_default=1)
+    result["non_critical_imperfections"] = enrich_faults(result["non_critical_imperfections"])
+    result["restored_imperfections"] = enrich_faults(result.get("restored_imperfections", []))
+
+    result["checklist"] = [
+        f"Check {f['part']} — {f['status']}"
+        for f in result["critical_imperfections"]
+    ]
 
     result["platform"] = platform
     return result
