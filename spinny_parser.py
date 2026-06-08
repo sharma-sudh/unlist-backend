@@ -54,7 +54,7 @@ def parse_report(raw_report):
 
 
 if __name__ == "__main__":
-    from scraper import fetch_report
+    from spinny_scraper import fetch_report
     url = "https://www.spinny.com/buy-used-cars/jaipur/hyundai/elite-i20/sportz-plus-12-ajmer-road-2019/29483061/"
     raw = fetch_report(url)
     result = parse_report(raw)
