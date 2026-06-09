@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
 from analyse import analyse_single, run_compare
 from compare import build_compare_response
-from share import save_report, load_report 
+from share import save_report, load_report, get_cached_analyse, cache_analyse
 
 app = FastAPI()
 
@@ -34,7 +34,12 @@ class ShareRequest(BaseModel):
 
 @app.post("/analyse")
 def analyse(req: AnalyseRequest):
-    return analyse_single(req.url)
+    cached = get_cached_analyse(req.url)
+    if cached:
+        return cached
+    result = analyse_single(req.url)
+    cache_analyse(req.url, result)
+    return result
 
 @app.post("/compare")
 def compare(req: CompareRequest):
