@@ -6,3 +6,4 @@ scikit-learn==1.9.0
 pandas==3.0.3
 google-genai
 python-dotenv
+redis

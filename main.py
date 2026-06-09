@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, field_validator
 from analyse import analyse_single, run_compare
 from compare import build_compare_response
+from share import save_report, load_report 
 
 app = FastAPI()
 
@@ -27,6 +28,9 @@ class CompareRequest(BaseModel):
         if len(v) > 4:
             raise ValueError("Compare supports a maximum of 4 URLs.")
         return v
+    
+class ShareRequest(BaseModel):
+    report: dict
 
 @app.post("/analyse")
 def analyse(req: AnalyseRequest):
@@ -39,3 +43,15 @@ def compare(req: CompareRequest):
     if valid_count < 2:
         raise HTTPException(status_code=400, detail="At least 2 listings must be valid to generate a comparison.")
     return build_compare_response(raw_results, req.urls)
+
+@app.post("/share")
+def share(req: ShareRequest):
+    report_id = save_report(req.report)
+    return {"id": report_id}
+
+@app.get("/report/{report_id}")
+def get_report(report_id: str):
+    report = load_report(report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found or expired.")
+    return report
