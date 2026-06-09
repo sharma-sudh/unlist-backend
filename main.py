@@ -5,7 +5,7 @@ from spinny_scraper import fetch_report as fetch_spinny
 from cars24_scraper import fetch_report as fetch_cars24
 from spinny_parser import parse_report as parse_spinny
 from cars24_parser import parse_report as parse_cars24
-from ml import enrich_faults
+from ml import enrich_faults, generate_summary
 
 app = FastAPI()
 
@@ -55,6 +55,15 @@ def analyse(req: AnalyseRequest):
         f"Check {f['part']} — {f['status']}"
         for f in result["critical_imperfections"]
     ]
+
+    result["summary"] = generate_summary(
+        car=result["car"],
+        critical=result["critical_imperfections"],
+        non_critical=result["non_critical_imperfections"],
+        restored=result.get("restored_imperfections", []),
+        replaced=result.get("replaced_parts", []),
+        repainted=result.get("repainted", False)
+    )
 
     result["platform"] = platform
     return result
