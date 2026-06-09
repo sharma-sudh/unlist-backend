@@ -58,12 +58,19 @@ def analyse(req: AnalyseRequest):
 
     result["critical_imperfections"] = enrich_faults(result["critical_imperfections"], is_critical_default=1)
     result["non_critical_imperfections"] = enrich_faults(result["non_critical_imperfections"])
-    result["restored_imperfections"] = enrich_faults(result.get("restored_imperfections", []))
 
-    result["checklist"] = [
-        f"Check {f['part']} — {f['status']}"
-        for f in result["critical_imperfections"]
-    ]
+    if platform == "spinny":
+        result["restored_imperfections"] = enrich_faults(result.get("restored_imperfections", []))
+        result["checklist"] = [
+            f"Check {f.get('part', '')} — {f.get('status', '')}"
+            for f in result["critical_imperfections"]
+        ]
+    else:
+        result.pop("restored_imperfections", None)
+        result["checklist"] = [
+            f"Check {f.get('part', '')} — {f.get('status', '')}"
+            for f in result["non_critical_imperfections"]
+        ]
 
     result["summary"] = generate_summary(
         car=result["car"],

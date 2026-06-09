@@ -44,9 +44,15 @@ def enrich_faults(faults: list, is_critical_default: int = 0) -> list:
 def generate_summary(car: dict, critical: list, non_critical: list, restored: list, replaced: list, repainted: bool = False) -> str:
     faults_text = ""
     if critical:
-        faults_text += "Critical issues: " + ", ".join(f"{f['part']} ({f['status']})" for f in critical) + ". "
+        faults_text += "Critical issues: " + ", ".join(
+        f"{f.get('part', f.get('category', ''))} ({f.get('status', f.get('description', ''))})"
+        for f in critical
+    ) + ". "
     if non_critical:
-        faults_text += "Minor issues: " + ", ".join(f"{f['part']} ({f['status']})" for f in non_critical) + ". "
+        faults_text += "Minor issues: " + ", ".join(
+        f"{f.get('part', f.get('category', ''))} ({f.get('status', f.get('description', ''))})"
+        for f in non_critical
+    ) + ". "
     if restored:
         faults_text += "Restored parts: " + ", ".join(f['part'] for f in restored) + ". "
     if replaced:
@@ -55,10 +61,11 @@ def generate_summary(car: dict, critical: list, non_critical: list, restored: li
         faults_text += "Car has repainted panels. "
 
     prompt = (
-        f"You are a car inspection expert helping an Indian used car buyer make a decision. "
-        f"Write a 2-3 sentence plain English summary of this inspection report. "
-        f"Be direct and honest. Mention the most serious issues first. "
-        f"End with a one-line buying advice. Do not use bullet points.\n\n"
+        f"You are a car inspection expert helping an Indian used car buyer understand an inspection report. "
+        f"Write a 2-3 sentence plain English summary of the key findings. "
+        f"Be direct and honest about the severity of issues. "
+        f"End with a practical suggestion — what to check, ask, or negotiate on — but do not tell the buyer whether to buy or not. "
+        f"Do not use bullet points.\n\n"
         f"Car: {car['title']}, {car['km']}km, ₹{car['price']:,}\n"
         f"Inspection findings: {faults_text if faults_text else 'No significant issues found.'}"
     )
