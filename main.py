@@ -28,24 +28,33 @@ def detect_platform(url: str) -> str:
 
 @app.post("/analyse")
 def analyse(req: AnalyseRequest):
-    platform = detect_platform(req.url)
+    url = req.url.strip()
+    platform = detect_platform(url)
 
-    if platform == "spinny":
-        raw = fetch_spinny(req.url)
-        if not raw:
-            raise HTTPException(status_code=400, detail="Invalid or unsupported Spinny URL")
-        result = parse_spinny(raw)
-        result["car"] = raw["car"]
+    if platform == "unknown":
+        raise HTTPException(status_code=400, detail="Unsupported platform. Paste a Spinny or Cars24 listing URL.")
 
-    elif platform == "cars24":
-        raw = fetch_cars24(req.url)
-        if not raw:
-            raise HTTPException(status_code=400, detail="Invalid or unsupported Cars24 URL")
-        result = parse_cars24(raw)
-        result["car"] = raw["car"]
+    try:
+        if platform == "spinny":
+            raw = fetch_spinny(url)
+            if not raw:
+                raise HTTPException(status_code=400, detail="Couldn't extract a car ID. Make sure this is a specific car listing, not a search page.")
+            result = parse_spinny(raw)
+            result["car"] = raw["car"]
 
-    else:
-        raise HTTPException(status_code=400, detail="Unsupported platform. Supported: spinny, cars24")
+        elif platform == "cars24":
+            raw = fetch_cars24(url)
+            if not raw:
+                raise HTTPException(status_code=400, detail="Couldn't extract a car ID. Make sure this is a specific car listing, not a search page.")
+            if not raw.get("categories") and not raw.get("checkpoints"):
+                raise HTTPException(status_code=404, detail="No inspection data found. This may be a Cars24 direct seller listing — Unlist only supports Cars24 owned stock and all Spinny listings.")
+            result = parse_cars24(raw)
+            result["car"] = raw["car"]
+
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=404, detail="Couldn't fetch this listing. It may have been sold or removed.")
 
     result["critical_imperfections"] = enrich_faults(result["critical_imperfections"], is_critical_default=1)
     result["non_critical_imperfections"] = enrich_faults(result["non_critical_imperfections"])
