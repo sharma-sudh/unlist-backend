@@ -1,9 +1,9 @@
 import csv
 import json
-from spinny_scraper import fetch_report as fetch_spinny
-from spinny_parser import parse_report as parse_spinny
-from cars24_scraper import fetch_report as fetch_cars24
-from cars24_parser import parse_report as parse_cars24
+from scrapers.spinny_scraper import fetch_report as fetch_spinny
+from parsers.spinny_parser import parse_report as parse_spinny
+from scrapers.cars24_scraper import fetch_report as fetch_cars24
+from parsers.cars24_parser import parse_report as parse_cars24
 
 SPINNY_URLS = [
     "https://www.spinny.com/buy-used-cars/gurgaon/jeep/compass/limited-plus-petrol-at-sector-29-2019/28944980/?referrer=/used-cars-in-delhi-ncr/s/",
