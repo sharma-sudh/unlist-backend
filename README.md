@@ -24,7 +24,7 @@ Paste a Spinny or Cars24 listing URL. Get back:
 
 - **Backend** — FastAPI, Python. Deployed on Render.
 - **ML** — scikit-learn (Random Forest), trained on 1,900 manually labelled fault records. pandas for data processing.
-- **LLM** — Gemini 2.5 Flash for plain-English report summaries.
+- **LLM** — Gemini 3.1 Flash Lite for plain-English report summaries.
 - **Frontend** — React (in progress)
 
 ## API
