@@ -46,6 +46,7 @@ def init_db():
                     email       TEXT UNIQUE NOT NULL,
                     name        TEXT,
                     picture     TEXT,
+                    password_hash   TEXT,
                     created_at  TIMESTAMPTZ DEFAULT NOW()
                 );
 

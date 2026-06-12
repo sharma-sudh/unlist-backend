@@ -1,4 +1,5 @@
 import json
+import bcrypt
 from .db import get_conn, get_cursor
 
 
@@ -59,3 +60,32 @@ def delete_saved_report(user_id: int, report_id: int) -> bool:
                 (report_id, user_id),
             )
             return cur.rowcount > 0
+        
+def register_user(email: str, password: str, name: str) -> dict:
+    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    with get_conn() as conn:
+        with get_cursor(conn) as cur:
+            try:
+                cur.execute(
+                    """
+                    INSERT INTO users (email, password_hash, name)
+                    VALUES (%s, %s, %s)
+                    RETURNING id, email, name, picture, created_at
+                    """,
+                    (email, password_hash, name),
+                )
+                return dict(cur.fetchone())
+            except Exception:
+                raise ValueError("Email already registered.")
+
+def login_user(email: str, password: str) -> dict:
+    with get_conn() as conn:
+        with get_cursor(conn) as cur:
+            cur.execute(
+                "SELECT * FROM users WHERE email = %s AND password_hash IS NOT NULL",
+                (email,),
+            )
+            user = cur.fetchone()
+    if not user or not bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
+        raise ValueError("Invalid email or password.")
+    return dict(user)
