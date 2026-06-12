@@ -7,3 +7,5 @@ pandas==3.0.3
 google-genai
 python-dotenv
 redis
+psycopg2-binary
+PyJWT
