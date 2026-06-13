@@ -10,3 +10,4 @@ redis
 psycopg2-binary
 PyJWT
 bcrypt
+email-validator

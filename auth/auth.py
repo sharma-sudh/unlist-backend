@@ -78,12 +78,3 @@ def require_auth(
 ) -> dict:
     """Inject into any endpoint that needs a logged-in user."""
     return decode_jwt(credentials.credentials)
-
-def decode_jwt(token: str) -> dict:
-    try:
-        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired.")
-    except jwt.InvalidTokenError as e:
-        print(f"JWT error: {e}")  # add this
-        raise HTTPException(status_code=401, detail="Invalid token.")

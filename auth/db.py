@@ -42,7 +42,7 @@ def init_db():
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id          SERIAL PRIMARY KEY,
-                    google_id   TEXT UNIQUE NOT NULL,
+                    google_id   TEXT UNIQUE,
                     email       TEXT UNIQUE NOT NULL,
                     name        TEXT,
                     picture     TEXT,

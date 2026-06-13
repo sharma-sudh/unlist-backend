@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, field_validator
 from contextlib import asynccontextmanager
+from pydantic import field_validator, EmailStr
 
 from analyse import analyse_single, run_compare
 from compare import build_compare_response
@@ -53,9 +54,20 @@ class SaveRequest(BaseModel):
     title: str | None = None
 
 class EmailAuthRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
     name: str | None = None
+
+    @field_validator("password")
+    @classmethod
+    def password_min_length(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters.")
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter.")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Password must contain at least one number.")
+        return v
 
 
 # ── Public endpoints ───────────────────────────────────────────────────────────
