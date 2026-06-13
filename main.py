@@ -8,7 +8,7 @@ from pydantic import field_validator, EmailStr
 from analyse import analyse_single, run_compare
 from compare import build_compare_response
 from share import save_report as redis_save, load_report, get_cached_analyse, cache_analyse
-from auth import get_google_auth_url, exchange_google_code, issue_jwt, require_auth
+from auth import get_google_auth_url, exchange_google_code, issue_jwt, require_auth, verify_google_id_token
 from auth import upsert_user, save_report as db_save_report, get_saved_reports, delete_saved_report, register_user, login_user
 from auth import init_db
 
@@ -69,6 +69,8 @@ class EmailAuthRequest(BaseModel):
             raise ValueError("Password must contain at least one number.")
         return v
 
+class GoogleTokenRequest(BaseModel):
+    id_token: str
 
 # ── Public endpoints ───────────────────────────────────────────────────────────
 
@@ -129,6 +131,21 @@ def auth_callback(code: str):
     )
     token = issue_jwt(user_id=user["id"], email=user["email"])
     return {"token": token, "user": {"name": user["name"], "email": user["email"], "picture": user["picture"]}}
+
+@app.post("/auth/google")
+def google_token_auth(req: GoogleTokenRequest):
+    try:
+        userinfo = verify_google_id_token(req.id_token)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    user = upsert_user(
+        google_id=userinfo["sub"],
+        email=userinfo["email"],
+        name=userinfo.get("name", ""),
+        picture=userinfo.get("picture", ""),
+    )
+    token = issue_jwt(user_id=user["id"], email=user["email"])
+    return {"token": token, "user": {"name": user["name"], "email": user["email"], "picture": user.get("picture")}}
 
 @app.post("/auth/register")
 def register(req: EmailAuthRequest):

@@ -50,6 +50,17 @@ def exchange_google_code(code: str) -> dict:
     userinfo_res.raise_for_status()
     return userinfo_res.json()   # sub, email, name, picture
 
+def verify_google_id_token(id_token: str) -> dict:
+    res = requests.get(
+        "https://oauth2.googleapis.com/tokeninfo",
+        params={"id_token": id_token}
+    )
+    if res.status_code != 200:
+        raise ValueError("Invalid Google ID token.")
+    data = res.json()
+    if data.get("aud") != GOOGLE_CLIENT_ID:
+        raise ValueError("Token audience mismatch.")
+    return data  # contains sub, email, name, picture
 
 # ── JWT ────────────────────────────────────────────────────────────────────────
 
