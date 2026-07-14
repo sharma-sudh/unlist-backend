@@ -12,7 +12,12 @@ from auth import get_google_auth_url, exchange_google_code, issue_jwt, require_a
 from auth import upsert_user, save_report as db_save_report, get_saved_reports, delete_saved_report, register_user, login_user
 from auth import init_db
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app):
+    init_db()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,14 +25,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@asynccontextmanager
-async def lifespan(app):
-    init_db()
-    yield
-
-app = FastAPI(lifespan=lifespan)
 
 # ── Request models ─────────────────────────────────────────────────────────────
 
